@@ -1,4 +1,4 @@
 # trustybot-code
-a discord bot that runs user code
+a discord bot that runs user code (on the host machine...)
 
-i have yet to come up with a containerized solution so this is not safe right now
+i have yet to come up with a containerized solution
