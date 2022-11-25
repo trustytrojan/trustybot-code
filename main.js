@@ -21,7 +21,6 @@ function setCommands() {
 
 function kill() {
   client.destroy();
-  console.log('Bot destroyed.');
   process.exit();
 }
 
