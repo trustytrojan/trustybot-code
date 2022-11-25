@@ -1,5 +1,6 @@
 const Discord = require('discord.js');
 const { ActionRow, TextInput, Button } = Discord.ComponentType;
+const { Primary } = Discord.ButtonStyle;
 
 const modal_wait_time = 300_000;
 
@@ -55,6 +56,7 @@ async function get_output(_process, _stdin) {
 function send_embed(modal_int, code, stdin, [stdout, stderr, exit_code]) {
   const { user } = modal_int;
 
+  /** @type {Discord.APIEmbedField[]} */
   const fields = [{ name: 'Your code', value: `\`\`\`py\n${code}\`\`\`` }];
   if(stdin?.length > 0)
     fields.push({ name: 'Standard input (`stdin`)', value: `\`\`\`${stdin}\`\`\`` });
@@ -63,6 +65,7 @@ function send_embed(modal_int, code, stdin, [stdout, stderr, exit_code]) {
   if(stderr.length > 0)
     fields.push({ name: 'Standard error (`stderr`)', value: `\`\`\`${stderr}\`\`\`` });
 
+  /** @type {Discord.APIEmbed} */
   const embed = {
     author: { name: user.tag, iconURL: user.displayAvatarURL() },
     title: `Running your ${lang} code`,
@@ -70,7 +73,8 @@ function send_embed(modal_int, code, stdin, [stdout, stderr, exit_code]) {
     footer: { text: `Exit code: ${exit_code}` }
   };
 
-  const reuse_button = { type: Button, customId: 'rerun',  };
+  /** @type {Discord.APIButtonComponent} */
+  const reuse_button = { type: Button, customId: 'rerun', label: 'Rerun code with new input', emoji: '', style: Primary };
 
   modal_int.reply({ embeds: [embed], components: [{ type: ActionRow, components: [reuse_button] }] });
 }
