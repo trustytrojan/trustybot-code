@@ -1,8 +1,12 @@
-const Discord = require('discord.js');
+const { randomUUID } = require('crypto');
 const { Worker } = require('worker_threads');
 const { ChildProcess } = require('child_process');
+const { once } = require('events');
+
+const Discord = require('discord.js');
 const { ActionRow, TextInput, Button } = Discord.ComponentType;
 const { Primary } = Discord.ButtonStyle;
+const { Paragraph, Short } = Discord.TextInputStyle;
 
 const modal_wait_time = 300_000;
 
@@ -15,14 +19,16 @@ const modalRow = (customId, label, style, required = false) => ({ type: ActionRo
 
 /** 
  * @param {Discord.ChatInputCommandInteraction} interaction
+ * @param {string} language
  * @returns {Promise<[Discord.ModalSubmitInteraction, string, string | undefined]>}
  */
- async function get_user_code(interaction) {
+ async function get_user_code(interaction, language) {
   const { user } = interaction;
   const customId = randomUUID();
-  await interaction.showModal({ customId, title: 'Paste your code here', components: [
+  await interaction.showModal({ customId, title: `Paste your ${language} code here`, components: [
     modalRow('code', 'code', Paragraph, true),
-    modalRow('stdin', 'user input (stdin)', Paragraph)
+    modalRow('stdin', 'user input (stdin)', Paragraph),
+    modalRow('cli_args', 'command line arguments', Short)
   ] });
   let modal_int;
   try { modal_int = await interaction.awaitModalSubmit({ filter: (m) => m.customId === customId, time: modal_wait_time }); }
@@ -35,30 +41,53 @@ const modalRow = (customId, label, style, required = false) => ({ type: ActionRo
 }
 
 /**
- * @param {Worker | ChildProcess} _process 
+ * @param {Worker | ChildProcess} process 
  * @returns {Promise<[string, string, number]>}
  */
-async function get_process_output(_process) {
-  if(!_process.stdin) { await modal_int.reply('an internal error has occurred! please try again!'); return; }
-  let _stdout = '';
-  let _stderr = '';
-  _process.stdout.on('data', (chunk) => _stdout += chunk);
-  _process.stderr.on('data', (chunk) => _stderr += chunk);
-  const [exit_code] = await once(_process, 'exit');
-  return [_stdout, _stderr, exit_code];
+async function get_process_output(process) {
+  //if(!process.stdin) { await modal_int.reply('an internal error has occurred! please try again!'); return; }
+  let stdout = '';
+  let stderr = '';
+  process.stdout.on('data', (chunk) => stdout += chunk);
+  process.stderr.on('data', (chunk) => stderr += chunk);
+  const [exit_code] = await once(process, 'exit');
+  return [stdout, stderr, exit_code];
 }
 
 /**
  * @param {Discord.User} user 
+ * @param {[string, string]}
  * @param {string} stderr 
  * @param {number} exit_code 
  */
-function compile_error_embed(user, lang, stderr, exit_code) {
+function compile_error_embed(user, [lang, language], code, errors, exit_code) {
   /** @type {Discord.APIEmbed} */
   const embed = {
     author: { name: user.tag, iconURL: user.displayAvatarURL() },
     title: `Compile error!`,
-    description: `Your ${lang} code failed to compile! Errors will be shown below.\`\`\`${stderr}\`\`\``,
+    description: `Your ${language} code failed to compile! See the errors below.`,
+    fields: [
+      { name: 'Your code', value: `\`\`\`${lang}\n${code}\`\`\`` },
+      { name: '\`gcc\`', value: `\`\`\`${errors}\`\`\``  }
+    ],
+    footer: { text: `gcc exit code: ${exit_code}` }
+  };
+
+  return embed;
+}
+
+/**
+ * @param {Discord.User} user 
+ * @param {[string, string]} 
+ * @param {string} code 
+ * @param {number} exit_code 
+ */
+function compile_success_embed(user, [lang, language], code, exit_code) {
+  /** @type {Discord.APIEmbed} */
+  const embed = {
+    author: { name: user.tag, iconURL: user.displayAvatarURL() },
+    title: `Compile success!`,
+    description: `Your ${language} code has successfully compiled.\`\`\`${lang}\n${code}\`\`\``,
     footer: { text: `gcc exit code: ${exit_code}` }
   };
 
@@ -67,14 +96,13 @@ function compile_error_embed(user, lang, stderr, exit_code) {
 
 /**
  * @param {string} code 
+ * @param {[string, string]}
  * @param {string} stdin 
  * @param {[string, string, number]}
  */
-function code_output_embed(code, stdin = '', [stdout, stderr, exit_code]) {
-  const { user } = modal_int;
-
+function code_output_embed(user, code, [lang, language], stdin = '', [stdout, stderr, exit_code]) {
   /** @type {Discord.APIEmbedField[]} */
-  const fields = [{ name: 'Your code', value: `\`\`\`py\n${code}\`\`\`` }];
+  const fields = [{ name: `Your ${language} code`, value: `\`\`\`${lang}\n${code}\`\`\`` }];
 
   if(stdin.length > 0)
     fields.push({ name: 'Standard input (`stdin`)', value: `\`\`\`${stdin}\`\`\`` });
@@ -82,6 +110,9 @@ function code_output_embed(code, stdin = '', [stdout, stderr, exit_code]) {
     fields.push({ name: 'Standard output (`stdout`)', value: `\`\`\`${stdout}\`\`\`` });
   if(stderr.length > 0)
     fields.push({ name: 'Standard error (`stderr`)', value: `\`\`\`${stderr}\`\`\`` });
+  
+  if(stdout.length === 0 && stderr.length === 0)
+    fields.push({ name: 'No output!', value: 'Your code did not generate any output.' });
 
   /** @type {Discord.APIEmbed} */
   const embed = {
@@ -94,28 +125,7 @@ function code_output_embed(code, stdin = '', [stdout, stderr, exit_code]) {
   return embed;
 }
 
-/**
- * @param {Discord.ModalSubmitInteraction} modal_int 
- * @param {Discord.APIEmbed} embed 
- */
-function reply_success(modal_int, embed) {
-  /** @type {Discord.APIButtonComponent} */
-  const reuse_button = { type: Button, customId: 'rerun', label: 'Rerun code with new input', emoji: '🔁', style: Primary };
-
-  modal_int.reply({ embeds: [embed], components: [{ type: ActionRow, components: [reuse_button] }] });
-}
-
-/**
- * @param {Discord.ModalSubmitInteraction} modal_int 
- * @param {string} code 
- * @param {string} stdin 
- * @param {[string, string, number]}
- */
-function send_embed(modal_int, code, stdin, [stdout, stderr, exit_code]) {
-  
-
-  
-}
+const rerun_button = { type: Button, customId: 'rerun', label: 'Rerun code with new input', emoji: '🔁', style: Primary };
 
 module.exports = {
   get modal_wait_time() { return modal_wait_time; },
@@ -124,5 +134,5 @@ module.exports = {
   get get_process_output() { return get_process_output; },
   get compile_error_embed() { return compile_error_embed; },
   get code_output_embed() { return code_output_embed; },
-  get send_embed() { return send_embed; }
+  get compile_success_embed() { return compile_success_embed; }
 };
