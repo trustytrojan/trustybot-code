@@ -3,7 +3,7 @@ const NewClient = require('./NewClient');
 const client = new NewClient({ intents: [] });
 
 client.on('ready', (client) => {
-  //setCommands();
+  client.application.commands.set(require('./command-data'));
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
@@ -13,11 +13,6 @@ require('./chat-input')(client);
 process.on('uncaughtException', (err) => { console.error(err); kill(); });
 process.on('SIGTERM', kill);
 process.on('SIGINT', kill);
-
-// this should only be run in the 'ready' event listener
-function setCommands() {
-  client.application.commands.set(require('./command-data'));
-}
 
 function kill() {
   client.destroy();

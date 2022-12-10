@@ -20,7 +20,7 @@ const modalRow = (customId, label, style, required = false) => ({ type: ActionRo
 /** 
  * @param {Discord.ChatInputCommandInteraction} interaction
  * @param {string} language
- * @returns {Promise<[Discord.ModalSubmitInteraction, string, string | undefined]>}
+ * @returns {Promise<[Discord.ModalSubmitInteraction, string, string?, string[]?]>}
  */
  async function get_user_code(interaction, language) {
   const { user } = interaction;
@@ -34,10 +34,12 @@ const modalRow = (customId, label, style, required = false) => ({ type: ActionRo
   try { modal_int = await interaction.awaitModalSubmit({ filter: (m) => m.customId === customId, time: modal_wait_time }); }
   catch(err) { await interaction.followUp(`${user} you took too long to submit your code`); return; }
   const code = modal_int.fields.getTextInputValue('code');
-  let stdin;
-  try { stdin = modal_int.fields.getTextInputValue('stdin'); }
-  catch(err) { void err; }
-  return [modal_int, code, stdin];
+  let stdin, cli_args;
+  try {
+    stdin = modal_int.fields.getTextInputValue('stdin');
+    cli_args = modal_int.fields.getTextInputValue('cli_args');
+  } catch(err) { void err; }
+  return [modal_int, code, stdin, cli_args?.split(' ')];
 }
 
 /**
