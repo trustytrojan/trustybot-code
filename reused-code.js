@@ -58,11 +58,16 @@ async function get_process_output(process) {
 
 /**
  * @param {Discord.User} user 
- * @param {[string, string]}
+ * @param {[string, string]} 
  * @param {string} stderr 
  * @param {number} exit_code 
  */
 function compile_error_embed(user, [lang, language], code, errors, exit_code) {
+  const compiler = {
+    c: 'gcc',
+    java: 'javac'
+  }[lang];
+
   /** @type {Discord.APIEmbed} */
   const embed = {
     author: { name: user.tag, iconURL: user.displayAvatarURL() },
@@ -70,7 +75,7 @@ function compile_error_embed(user, [lang, language], code, errors, exit_code) {
     description: `Your ${language} code failed to compile! See the errors below.`,
     fields: [
       { name: 'Your code', value: `\`\`\`${lang}\n${code}\`\`\`` },
-      { name: '\`gcc\`', value: `\`\`\`${errors}\`\`\``  }
+      { name: `\`${compiler}\``, value: `\`\`\`${errors}\`\`\``  }
     ],
     footer: { text: `gcc exit code: ${exit_code}` }
   };
@@ -119,7 +124,7 @@ function code_output_embed(user, code, [lang, language], stdin = '', [stdout, st
   /** @type {Discord.APIEmbed} */
   const embed = {
     author: { name: user.tag, iconURL: user.displayAvatarURL() },
-    title: `Running your ${lang} code`,
+    title: `Running your ${language} code`,
     fields,
     footer: { text: `Process exit code: ${exit_code}` }
   };

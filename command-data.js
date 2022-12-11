@@ -1,5 +1,5 @@
 const { APIApplicationCommand, ApplicationCommandOptionType } = require('discord.js');
-const { Boolean, Integer } = ApplicationCommandOptionType;
+const { Boolean, Integer, Subcommand } = ApplicationCommandOptionType;
 
 /** @type {APIApplicationCommand[]} */
 module.exports = [

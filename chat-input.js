@@ -1,4 +1,4 @@
-const { ChatInputCommandInteraction } = require('discord.js');
+const { ChatInputCommandInteraction, EmbedBuilder } = require('discord.js');
 const NewClient = require('./NewClient');
 const { Worker } = require('worker_threads');
 const { execFile } = require('child_process');
@@ -66,7 +66,7 @@ const handlers = {
 
     const [_, stderr, exit_code] = await get_process_output(child);
     if(stderr.length > 0) {
-      const embed = compile_error_embed(modal_int.user, 'C', code, stderr, exit_code);
+      const embed = compile_error_embed(modal_int.user, ['c', 'C'], code, stderr, exit_code);
       modal_int.reply({ embeds: [embed] });
       return;
     }
@@ -81,7 +81,24 @@ const handlers = {
   /** @param {ChatInputCommandInteraction} interaction */
   async java(interaction) {
     const { options } = interaction;
-    const surround_with_main = options.getInteger('surround_with_main', true);
+
+    // below commented code is for checking versions of compilers and runtimes
+    
+    // switch(options.getSubcommand()) {
+    //   case 'version': {
+    //     const embed = new EmbedBuilder({
+    //       title: 'Checking Java versions'
+    //     });
+    //     let child = execFile('java', ['-version']);
+    //     embed.addFields({ name: '`java -version`', value: (await get_process_output(child))[1] });
+    //     child = execFile('javac', ['-version']);
+    //     embed.addFields({ name: '`javac -version`', value: (await get_process_output(child))[0] });
+    //     modal_int.reply({ embeds: [embed] });
+    //     return;
+    //   }
+    // }
+
+    const surround_with_main = options.getBoolean('surround_with_main', true);
     const println_shorthand = options.getBoolean('println_shorthand', true);
 
     let [modal_int, code, stdin] = await get_user_code(interaction, 'Java');
@@ -100,7 +117,7 @@ const handlers = {
     
     const [_, stderr, exit_code] = await get_process_output(child);
     if(stderr.length > 0) {
-      const embed = compile_error_embed(modal_int.user, 'Java', code, stderr, exit_code);
+      const embed = compile_error_embed(modal_int.user, ['java', 'Java'], code, stderr, exit_code);
       modal_int.reply({ embeds: [embed] });
       return;
     }
@@ -108,6 +125,8 @@ const handlers = {
     child = execFile('java', ['__']);
     const embed = code_output_embed(modal_int.user, code, ['java', 'Java'], stdin, await get_process_output(child));
     rm('./a.out', () => {});
+
+    modal_int.reply({ embeds: [embed] });
   },
 }
 
