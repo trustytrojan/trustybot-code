@@ -3,7 +3,7 @@ const NewClient = require('./NewClient');
 const client = new NewClient({ intents: [] });
 
 client.on('ready', (client) => {
-  client.application.commands.set(require('./command-data'));
+  //client.application.commands.set(require('./command-data'));
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
