@@ -127,6 +127,19 @@ function code_output_embed(user, code, [lang, language], stdin = '', [stdout, st
   return embed;
 }
 
+/** 
+ * @param {string} code
+ * @param {number} num_spaces
+ */
+function indent_all_lines(code, num_spaces) {
+  const lines = code.split('\n');
+  for(let i = 0; i < lines.length; ++i)
+    for(let j = 0; j < num_spaces; ++j)
+      lines[i] = ' '+lines[i];
+  lines[lines.length-1].replace('\n', '');
+  return lines.join('\n');
+}
+
 const rerun_button = { type: Button, customId: 'rerun', label: 'Rerun code with new input', emoji: '🔁', style: Primary };
 
 module.exports = {
@@ -136,5 +149,6 @@ module.exports = {
   get get_process_output() { return get_process_output; },
   get compile_error_embed() { return compile_error_embed; },
   get code_output_embed() { return code_output_embed; },
-  get compile_success_embed() { return compile_success_embed; }
+  get compile_success_embed() { return compile_success_embed; },
+  get indent_all_lines() { return indent_all_lines; }
 };
