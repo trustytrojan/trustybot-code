@@ -22,21 +22,23 @@ const handlers = {
   /** @param {ChatInputCommandInteraction} interaction */
   async javascript(interaction) {
     const [modal_int, code, stdin] = await get_user_code(interaction, 'JavaScript');
+    await modal_int.deferReply();
     const worker = new Worker(code, { eval: true, stderr: true, stdin: true, stdout: true });
     if(stdin) worker.stdin.end(stdin);
     const embed = code_output_embed(modal_int.user, code, ['js', 'JavaScript'], stdin, await get_process_output(worker));
-    modal_int.reply({ embeds: [embed] });
+    modal_int.followUp({ embeds: [embed] });
   },
 
   /** @param {ChatInputCommandInteraction} interaction */
   async python(interaction) {
     const [modal_int, code, stdin, cli_args] = await get_user_code(interaction, 'Python');
+    await modal_int.deferReply();
     const args = ['-c', code];
     if(cli_args) args.concat(cli_args);
     const child = execFile('python', args);
     if(stdin) child.stdin.end(stdin);
     const embed = code_output_embed(modal_int.user, code, ['py', 'Python'], stdin, await get_process_output(child));
-    modal_int.reply({ embeds: [embed] });
+    modal_int.followUp({ embeds: [embed] });
   },
 
   /** @param {ChatInputCommandInteraction} interaction */
