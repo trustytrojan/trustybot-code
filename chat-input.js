@@ -1,8 +1,8 @@
-const { ChatInputCommandInteraction, EmbedBuilder } = require('discord.js');
+const { ChatInputCommandInteraction } = require('discord.js');
 const NewClient = require('./NewClient');
 const { Worker } = require('worker_threads');
 const { execFile } = require('child_process');
-const { rm, writeFile } = require('fs');
+const { writeFile } = require('fs');
 
 /**
  * @param {string} path 
@@ -76,7 +76,6 @@ const handlers = {
 
     child = execFile('./a.out');
     const embed = code_output_embed(modal_int.user, code, ['c', 'C'], stdin, await get_process_output(child));
-    rm('./a.out', () => {});
 
     modal_int.followUp({ embeds: [embed] });
   },
@@ -128,7 +127,6 @@ const handlers = {
 
     child = execFile('java', ['__']);
     const embed = code_output_embed(modal_int.user, code, ['java', 'Java'], stdin, await get_process_output(child));
-    rm('./a.out', () => {});
 
     modal_int.followUp({ embeds: [embed] });
   },
