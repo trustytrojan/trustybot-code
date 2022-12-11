@@ -46,6 +46,7 @@ const handlers = {
     const auto_include_headers = options.getBoolean('auto_include_headers', true);
 
     let [modal_int, code, stdin] = await get_user_code(interaction, 'C');
+    await modal_int.deferReply();
 
     if(surround_with_main) {
       code = indent_all_lines(code, 2);
@@ -67,7 +68,7 @@ const handlers = {
     const [_, stderr, exit_code] = await get_process_output(child);
     if(stderr.length > 0) {
       const embed = compile_error_embed(modal_int.user, ['c', 'C'], code, stderr, exit_code);
-      modal_int.reply({ embeds: [embed] });
+      modal_int.followUp({ embeds: [embed] });
       return;
     }
 
@@ -75,7 +76,7 @@ const handlers = {
     const embed = code_output_embed(modal_int.user, code, ['c', 'C'], stdin, await get_process_output(child));
     rm('./a.out', () => {});
 
-    modal_int.reply({ embeds: [embed] });
+    modal_int.followUp({ embeds: [embed] });
   },
 
   /** @param {ChatInputCommandInteraction} interaction */
@@ -119,7 +120,7 @@ const handlers = {
     const [_, stderr, exit_code] = await get_process_output(child);
     if(stderr.length > 0) {
       const embed = compile_error_embed(modal_int.user, ['java', 'Java'], code, stderr, exit_code);
-      modal_int.reply({ embeds: [embed] });
+      modal_int.followUp({ embeds: [embed] });
       return;
     }
 
