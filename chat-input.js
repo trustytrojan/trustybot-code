@@ -102,6 +102,7 @@ const handlers = {
     const println_shorthand = options.getBoolean('println_shorthand', true);
 
     let [modal_int, code, stdin] = await get_user_code(interaction, 'Java');
+    await modal_int.deferReply();
 
     if(surround_with_main) {
       code = indent_all_lines(code, 4);
@@ -126,7 +127,7 @@ const handlers = {
     const embed = code_output_embed(modal_int.user, code, ['java', 'Java'], stdin, await get_process_output(child));
     rm('./a.out', () => {});
 
-    modal_int.reply({ embeds: [embed] });
+    modal_int.followUp({ embeds: [embed] });
   },
 }
 
